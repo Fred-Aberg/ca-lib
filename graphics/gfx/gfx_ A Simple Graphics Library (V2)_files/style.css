@@ -1,0 +1,21 @@
+div.code {
+background: #ffffcc;
+font-family: monospace;
+font-size: 75%
+font-align: left;
+white-space: pre;
+border: solid 1px black;
+padding: 5px;
+margin: 20px;
+}
+
+div.func {
+background: #ccffcc;
+font-family: monospace;
+font-size: 100%
+font-align: left;
+font-weight: bold;
+white-space: pre;
+padding: 5px;
+margin: 20px;
+}

@@ -12,6 +12,10 @@ A simple cellular automata library in c with the goal of providing a framework f
 
 - Creating a cell from scratch - user provides the *data* pointer.
 
+## ca-lib-graphics
+
+A library that interacts with ca-lib - using [gfx]([gfx: A Simple Graphics Library (V2)](https://www3.nd.edu/~dthain/courses/cse20211/fall2013/gfx/)) to render grids from ca-lib.
+
 ## Design & Planning
 
 ### Documentation & code formatting
