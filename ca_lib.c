@@ -6,14 +6,14 @@
 
 /*----USER NON-REACHABLE DATATYPES----*/
 
-struct cell
+struct cell_struct
 {
     size_t x;
     size_t y;
     data_t data;
 };
 
-typedef struct cell cell_t;
+typedef struct cell_struct cell_t;
 
 struct grid
 {
@@ -54,8 +54,8 @@ static void fill_grid_empty_cells(ca_lib_grid_t *grid)
     size_t width = grid->width;
     // A cell with no data_ptr and undefined coordinates
     cell_t empty_cell; 
-    empty_cell.data.data_size = 0;
-    empty_cell.data.data_ptr = NULL;
+    empty_cell.data.size = 0;
+    empty_cell.data.ptr = NULL;
 
     for (size_t i = 0; i < width * grid->height; i++)
     {
@@ -65,6 +65,13 @@ static void fill_grid_empty_cells(ca_lib_grid_t *grid)
         grid->cells[i] = empty_cell; // Value transfer, not identity
     }
     
+}
+
+static void clear_cell(ca_lib_grid_t *grid, cell_t *cell)
+{
+    if (!cell->data.ptr) {return;}
+    cell->data.ptr = grid->free_func(cell->data.ptr);
+    cell->data.size = 0;
 }
 
 /*----PUBLIC LIBRARY FUNCTIONS----*/
@@ -109,25 +116,54 @@ ca_lib_grid_t *ca_lib_destroy_grid(ca_lib_grid_t *grid)
     // Free all cells' 'data_ptr' pointers
     for (size_t i = 0; i < grid->height * grid->height; i++)
     {
-        void *data_ptr = grid->cells[i].data.data_ptr; // Grab data_ptr
-        if(!data_ptr){continue;} // Skip if cell is empty
-        grid->free_func(data_ptr); // free data_ptr
+        clear_cell(grid, &grid->cells[i]);
     }
     free(grid);
     return NULL;
+}
+
+//Empty cell at (x,y), freeing it's data
+void ca_lib_clear_cell(ca_lib_grid_t *grid, size_t x, size_t y)
+{
+    cell_t *cellxy = &grid->cells[pos_to_i(grid->width, x, y)];
+    clear_cell(grid, cellxy);
 }
 
 // Inserts the given data_ptr into the cell at (x,y) in 'grid'
 void ca_lib_insert_cell(ca_lib_grid_t *grid, size_t x, size_t y, size_t data_size, void *data_ptr)
 {
     cell_t *cell = &grid->cells[pos_to_i(grid->width, x, y)]; // Get pointer to cell at (x,y)
-    cell->data.data_size = data_size; // Change cell's data_size
+    cell->data.size = data_size; // Change cell's data_size
 
     // Free previous data if present
-    if (cell->data.data_ptr) { cell->data.data_ptr = grid->free_func(cell->data.data_ptr); }
+    if (cell->data.ptr) { cell->data.ptr = grid->free_func(cell->data.ptr); }
 
     // Allocate for new data
-    cell->data.data_ptr = grid->alloc_func(data_ptr, data_size);
+    cell->data.ptr = grid->alloc_func(data_ptr, data_size);
+}
+
+// Moves the cell's data at (x1,y1) to (x2, y2) - overwriting and freeing any potential cell at (x2, y2)
+void ca_lib_move_cell(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size_t y2)
+{
+    // Grab cell at (x1, y1)
+    cell_t *cellxy = &grid->cells[pos_to_i(grid->width, x1, y1)];
+
+    // Insert data from cellxy at (x2, y2)
+    ca_lib_insert_cell(grid, x2, y2, cellxy->data.size, cellxy->data.ptr);
+
+    clear_cell(grid, cellxy);
+}
+
+// Switches the cells' data at (x1,y1) and (x2, y2)
+void ca_lib_switch_cells(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size_t y2)
+{
+    // No real memory management is needed, simply switch the 'data'
+    cell_t *cell_1 = &grid->cells[pos_to_i(grid->width, x1, y1)];
+    cell_t *cell_2 = &grid->cells[pos_to_i(grid->width, x2, y2)];
+    void *ptr_1 = cell_1->data.ptr;
+    void *ptr_2 = cell_2->data.ptr;
+    cell_1->data.ptr = ptr_2;
+    cell_2->data.ptr = ptr_1;
 }
 
 // Get the data_t 'data' from cell at (x,y) in grid
@@ -139,17 +175,19 @@ data_t ca_lib_get_cell_data(ca_lib_grid_t *grid, size_t x, size_t y)
 // Check whether the cell at (x,y) in 'grid' is empty ('data_ptr' == NULL)
 bool ca_lib_cell_empty(ca_lib_grid_t *grid, size_t x, size_t y)
 {
-    return grid->cells[pos_to_i(grid->width, x, y)].data.data_ptr == NULL;
+    return grid->cells[pos_to_i(grid->width, x, y)].data.ptr == NULL;
 }
 
 // Prints a simple representation of the given 'grid'
 void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char convert_func)
 {
-    printf("\n| GRID [%d , %d] |", (int)grid->width, (int)grid->height);
-    for (size_t i = 0; i < grid->height * grid->width; i++)
+    printf("\n| GRID [%d , %d] |\n", (int)grid->width, (int)grid->height);
+    for (int y = (int)grid->height - 1; y >= 0; y--)
     {
-        char c = convert_func(grid->cells[i].data.data_ptr);
-        i % grid->width == 0 ? printf("\n%c", c) : printf("%c", c); // Print new line if divisible by width
+        for (int x = 0; x < (int)grid->width; x++)
+        {
+            char c = convert_func(grid->cells[pos_to_i(grid->width, (size_t)x, (size_t)y)].data.ptr);
+            x == 0 ? printf("\n%c", c) : printf("%c", c); // Print new line if x == 0
+        }
     }
-    
 }
