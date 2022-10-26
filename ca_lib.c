@@ -179,7 +179,7 @@ bool ca_lib_cell_empty(ca_lib_grid_t *grid, size_t x, size_t y)
 }
 
 // Prints a simple representation of the given 'grid'
-void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char convert_func)
+void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char_t convert_func)
 {
     printf("\n| GRID [%d , %d] |\n", (int)grid->width, (int)grid->height);
     for (int y = (int)grid->height - 1; y >= 0; y--)
@@ -190,4 +190,12 @@ void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char convert_func)
             x == 0 ? printf("\n%c", c) : printf("%c", c); // Print new line if x == 0
         }
     }
+}
+
+void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
+
+// Applies the given simulation function to the grid without keeping track of movement 
+void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func)
+{
+    
 }

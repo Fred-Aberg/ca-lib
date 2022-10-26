@@ -10,9 +10,7 @@ main:
 	ca_mem
 
 clean:        	# cleans up all objectfiles
-	rm -f *.o unittest
-	rm -f *.o gcov_unittest
-	rm -f *.o perftest
+	rm -f *.o ca_test
 	rm -f *.gcda cov
 	rm -f *.gcno cov
 	rm -f *.out

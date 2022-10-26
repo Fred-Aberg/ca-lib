@@ -28,6 +28,13 @@ char true_vs_false(void *data_ptr)
     return '~'; // cell empty
 }
 
+void reverse_bool(ca_lib_grid_t *grid, data_t *data, size_t x, size_t y)
+{
+    if (!data->ptr) { return; }
+    *(bool *)data->ptr = !*(bool *)data->ptr;
+}
+
+
 ca_lib_grid_t *sample_grid()
 {
     ca_lib_grid_t *grid = ca_lib_create_grid(5, 5, ca_lib_alloc_simple_ptr, ca_lib_free_simple_ptr);
@@ -35,6 +42,23 @@ ca_lib_grid_t *sample_grid()
     ca_lib_insert_cell(grid, 0,0, sizeof(bool), &bl);
     bl = false;
     ca_lib_insert_cell(grid, 4,4, sizeof(bool), &bl);
+    return grid;
+}
+
+ca_lib_grid_t *sample_grid_cross()
+{
+    ca_lib_grid_t *grid = ca_lib_create_grid(5, 5, ca_lib_alloc_simple_ptr, ca_lib_free_simple_ptr);
+    bool bl = true;
+    bool bl2 = false;
+    ca_lib_insert_cell(grid, 0,0, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 1,1, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 2,2, sizeof(bool), &bl2);
+    ca_lib_insert_cell(grid, 3,3, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 4,4, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 4,0, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 3,1, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 1,3, sizeof(bool), &bl);
+    ca_lib_insert_cell(grid, 0,4, sizeof(bool), &bl);
     return grid;
 }
 
@@ -126,6 +150,16 @@ void test_switch_cells()
     grid = ca_lib_destroy_grid(grid);
 }
 
+void test_simulate_unabstract()
+{
+    ca_lib_grid_t *grid = sample_grid_cross();
+    ca_lib_simulate_unabstract(grid, reverse_bool);
+    ca_lib_print_grid(grid, true_vs_false);
+    CU_ASSERT_EQUAL(*(bool *)ca_lib_get_cell_data(grid, 2, 2).ptr, true);
+    CU_ASSERT_EQUAL(*(bool *)ca_lib_get_cell_data(grid, 4, 4).ptr, false);
+    grid = ca_lib_destroy_grid(grid);
+}
+
 int main()
 {
   CU_pSuite test_suite1 = NULL;
@@ -149,6 +183,7 @@ int main()
     (NULL == CU_add_test(test_suite1, "test_move_cell", test_move_cell)) ||
     (NULL == CU_add_test(test_suite1, "test_move_cell_overwrite", test_move_cell_overwrite)) ||
     (NULL == CU_add_test(test_suite1, "test_switch_cells", test_switch_cells)) ||
+    (NULL == CU_add_test(test_suite1, "test_simulate_unabstract", test_simulate_unabstract)) ||
     0
   )
     {

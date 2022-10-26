@@ -13,10 +13,17 @@ typedef struct data data_t;
 
 typedef struct grid ca_lib_grid_t;
 
+/// @brief Allocates a space 'data_size' large and copies over the data from 'data_ptr' - returns the allocated pointer
 typedef void *(*ca_lib_data_alloc_function_t)(void *data_ptr, size_t data_size);
+/// @brief Frees the data stored in 'data_ptr' and returns null 
 typedef void *(*ca_lib_data_free_function_t)(void *data_ptr);
 
-typedef char(*ca_lib_data_to_char)(void *data_ptr);
+/// @brief Decides how the cell will be represented when printed in the console
+typedef char(*ca_lib_data_to_char_t)(void *data_ptr);
+
+/// @brief Provided the data of a cell - implement desired simulation
+typedef void(*ca_lib_simulate_cell_t)(ca_lib_grid_t *grid, data_t *data, size_t x, size_t y);
+
 
 /*----FUNCTION HEADERS----*/
 
@@ -30,7 +37,6 @@ void *ca_lib_alloc_simple_ptr (void *data_ptr, size_t data_size);
 /// @param data_ptr 
 /// @return null
 void *ca_lib_free_simple_ptr (void *data_ptr);
-
 
 /// @brief Creates a 'width' by 'height' grid
 /// @param width 
@@ -92,4 +98,14 @@ bool ca_lib_cell_empty(ca_lib_grid_t *grid, size_t x, size_t y);
 /// @brief Prints a simple representation of the given 'grid'
 /// @param grid 
 /// @param convert_func Determines what char the cell will be represented as based on 'data_ptr'
-void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char convert_func);
+void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char_t convert_func);
+
+/// @brief Applies the given simulation function to each cell, uses a buffer to make sure ALL cells are simulated and only ONCE - despite movement
+/// @param grid The given grid to be operated on
+/// @param sim_func The function which determines how the cells will behave
+void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
+
+/// @brief Applies the given simulation function to the grid without keeping track of movement 
+/// @param grid The given grid to be operated on
+/// @param sim_func The function which determines how the cells will behave
+void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
