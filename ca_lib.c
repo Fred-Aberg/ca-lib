@@ -32,6 +32,11 @@ struct position
 };
 typedef struct position pos_t;
 
+struct cell_buffer
+{
+    /* data */
+};
+
 
 /*----STATIC HELPER FUNCTIONS----*/
 
@@ -190,12 +195,21 @@ void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char_t convert_func)
             x == 0 ? printf("\n%c", c) : printf("%c", c); // Print new line if x == 0
         }
     }
+    puts(""); // new line
 }
 
-void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
+void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func)
+{
+    // Create a buffer with all cells
+}
 
-// Applies the given simulation function to the grid without keeping track of movement 
+// Applies the given simulation function to the grid without keeping track of movement
+// It naïvely applies the sim_func on each cell - good for simple automatas where movement isn't implemented
 void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func)
 {
-    
+    for (size_t i = 0; i < grid->height * grid->width; i++)
+    {
+        pos_t pos = i_to_pos(grid->width, i);
+        sim_func(grid, &grid->cells[i].data, pos.x, pos.y); 
+    }
 }
