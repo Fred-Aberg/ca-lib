@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../gfx/gfx.h"
-#include "hash_table/hash_table.h"
+#include "../packages/hash_table/hash_table.h"
 #include <ctype.h>
 #include <string.h>
 

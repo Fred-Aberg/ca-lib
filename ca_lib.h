@@ -6,6 +6,8 @@
 
 struct data
 {
+    size_t x; // Read-Only
+    size_t y; // Read-Only
     size_t size;
     void *ptr; 
 };
@@ -22,7 +24,7 @@ typedef void *(*ca_lib_data_free_function_t)(void *data_ptr);
 typedef char(*ca_lib_data_to_char_t)(void *data_ptr);
 
 /// @brief Provided the data of a cell - implement desired simulation
-typedef void(*ca_lib_simulate_cell_t)(ca_lib_grid_t *grid, data_t *data, size_t x, size_t y);
+typedef void(*ca_lib_simulate_cell_t)(ca_lib_grid_t *grid, data_t *data);
 
 
 /*----FUNCTION HEADERS----*/
@@ -45,6 +47,12 @@ void *ca_lib_free_simple_ptr (void *data_ptr);
 /// @param free_func a function that frees the cells' 'data_ptr' pointer
 /// @return a pointer to the allocated grid
 ca_lib_grid_t *ca_lib_create_grid(size_t width, size_t heigth, ca_lib_data_alloc_function_t alloc_func, ca_lib_data_free_function_t free_func);
+
+size_t ca_lib_get_grid_width(ca_lib_grid_t *grid);
+
+size_t ca_lib_get_grid_height(ca_lib_grid_t *grid);
+
+bool ca_lib_check_limits(ca_lib_grid_t *grid, size_t x, size_t y);
 
 /// @brief Frees the given grid and its cells' 'data_ptr' pointer and returns NULL
 /// @param grid the given grid to be freed 
@@ -85,7 +93,7 @@ void ca_lib_switch_cells(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, s
 /// @param grid The given grid to be searched
 /// @param x 
 /// @param y 
-/// @return The cell's data_t 'data' NOTE: changing 'data.data_ptr' will change the data in the original cell
+/// @return The cell's data_t 'data' NOTE: changing 'data.ptr' will change the data in the original cell
 data_t ca_lib_get_cell_data(ca_lib_grid_t *grid, size_t x, size_t y);
 
 /// @brief Check whether the cell at (x,y) in 'grid' is empty ('data_ptr' == NULL)

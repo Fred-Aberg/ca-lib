@@ -3,8 +3,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "ca_lib.h"
+#include "packages/hash_table/linked_list.h"
 
-/*----USER NON-REACHABLE DATATYPES----*/
+/*----USER NON-REACHAcarts.c ../database/db.c ../hash_and_list/hash_table.c ../hash_and_list/linked_list.cBLE DATATYPES----*/
 
 struct cell_struct
 {
@@ -31,11 +32,6 @@ struct position
     size_t y;
 };
 typedef struct position pos_t;
-
-struct cell_buffer
-{
-    /* data */
-};
 
 
 /*----STATIC HELPER FUNCTIONS----*/
@@ -77,6 +73,28 @@ static void clear_cell(ca_lib_grid_t *grid, cell_t *cell)
     if (!cell->data.ptr) {return;}
     cell->data.ptr = grid->free_func(cell->data.ptr);
     cell->data.size = 0;
+    cell->data.x = cell->x;
+    cell->data.y = cell->y;
+}
+
+static void alloc_data_allocated(void **data_loc, void *data, size_t data_size)
+{
+    *data_loc = data; // data_loc has already been alloc:ed
+}
+
+static void dont_free(void **data_loc)
+{
+    return; // Reject work, do nothing, sleep.
+}
+
+static ioopm_list_t *create_cell_buffer(ca_lib_grid_t *grid)
+{
+    ioopm_list_t *buf = ioopm_linked_list_create(alloc_data_allocated, dont_free);
+    for (size_t i = 0; i < grid->height * grid->width; i++)
+    {
+        ioopm_linked_list_append(buf, &grid->cells[i].data, sizeof(data_t));
+    }
+    return buf;
 }
 
 /*----PUBLIC LIBRARY FUNCTIONS----*/
@@ -115,6 +133,21 @@ ca_lib_grid_t *ca_lib_create_grid(size_t width, size_t height, ca_lib_data_alloc
     return grid;
 }
 
+size_t ca_lib_get_grid_width(ca_lib_grid_t *grid)
+{
+    return grid->width;
+}
+
+size_t ca_lib_get_grid_height(ca_lib_grid_t *grid)
+{
+    return grid->height;
+}
+
+bool ca_lib_check_limits(ca_lib_grid_t *grid, size_t x, size_t y)
+{
+    return ((x >= 0 && x < grid->width) && (y >= 0 && y < grid->height));
+}
+
 // Frees the given grid and its cells' 'data_ptr' pointer and returns NULL
 ca_lib_grid_t *ca_lib_destroy_grid(ca_lib_grid_t *grid)
 {
@@ -139,6 +172,8 @@ void ca_lib_insert_cell(ca_lib_grid_t *grid, size_t x, size_t y, size_t data_siz
 {
     cell_t *cell = &grid->cells[pos_to_i(grid->width, x, y)]; // Get pointer to cell at (x,y)
     cell->data.size = data_size; // Change cell's data_size
+    cell->data.x = x;
+    cell->data.y = y;
 
     // Free previous data if present
     if (cell->data.ptr) { cell->data.ptr = grid->free_func(cell->data.ptr); }
@@ -150,6 +185,8 @@ void ca_lib_insert_cell(ca_lib_grid_t *grid, size_t x, size_t y, size_t data_siz
 // Moves the cell's data at (x1,y1) to (x2, y2) - overwriting and freeing any potential cell at (x2, y2)
 void ca_lib_move_cell(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size_t y2)
 {
+    // TODO: Optimise: don't need to clear and reinsert, just moooooove
+
     // Grab cell at (x1, y1)
     cell_t *cellxy = &grid->cells[pos_to_i(grid->width, x1, y1)];
 
@@ -165,10 +202,14 @@ void ca_lib_switch_cells(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, s
     // No real memory management is needed, simply switch the 'data'
     cell_t *cell_1 = &grid->cells[pos_to_i(grid->width, x1, y1)];
     cell_t *cell_2 = &grid->cells[pos_to_i(grid->width, x2, y2)];
-    void *ptr_1 = cell_1->data.ptr;
-    void *ptr_2 = cell_2->data.ptr;
-    cell_1->data.ptr = ptr_2;
-    cell_2->data.ptr = ptr_1;
+    data_t data_1 = cell_1->data;
+    data_1.x = x2;
+    data_1.y = y2;
+    data_t data_2 = cell_2->data;
+    data_2.x = x1;
+    data_2.y = y1;
+    cell_1->data = data_2;
+    cell_2->data = data_1;
 }
 
 // Get the data_t 'data' from cell at (x,y) in grid
@@ -200,7 +241,13 @@ void ca_lib_print_grid(ca_lib_grid_t *grid, ca_lib_data_to_char_t convert_func)
 
 void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func)
 {
-    // Create a buffer with all cells
+    ioopm_list_t *cell_buf = create_cell_buffer(grid);
+    while (!ioopm_linked_list_is_empty(cell_buf))
+    {
+        data_t *current_data;
+        ioopm_linked_list_remove(cell_buf, 0, (void **)(&current_data));
+        sim_func(grid, current_data);
+    }
 }
 
 // Applies the given simulation function to the grid without keeping track of movement
@@ -209,7 +256,6 @@ void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_
 {
     for (size_t i = 0; i < grid->height * grid->width; i++)
     {
-        pos_t pos = i_to_pos(grid->width, i);
-        sim_func(grid, &grid->cells[i].data, pos.x, pos.y); 
+        sim_func(grid, &grid->cells[i].data);
     }
 }
