@@ -1,5 +1,6 @@
 C_COMPILER     		= gcc
-C_OPTIONS          	= -Wall -pedantic
+FLAGS				= -Wall -std=c17 -g
+C_OPTIONS          	= -Wall -pedantic -g
 C_LINK_OPTIONS     	= -lm
 CUNIT_LINK        	= -lcunit
 OBJECTS				= packages/hash_table/linked_list.c ca_lib.c
@@ -12,6 +13,7 @@ main:
 
 clean:        	# cleans up all objectfiles
 	rm -f *.o ca_test
+	rm -f *.o ca_perf
 	rm -f *.gcda cov
 	rm -f *.gcno cov
 	rm -f *.out

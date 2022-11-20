@@ -40,7 +40,7 @@ typedef struct position pos_t;
 static pos_t i_to_pos(size_t width, int i)
 {
     pos_t pos;
-    pos.y = i % width;
+    pos.y = i / width; // C autimatically "floors" the result 
     pos.x = i - (pos.y * width);
     return pos;
 }
@@ -63,6 +63,8 @@ static void fill_grid_empty_cells(ca_lib_grid_t *grid)
         pos_t pos = i_to_pos(width, i);
         empty_cell.x = pos.x; // Working on a local variable is faster than one on the heap
         empty_cell.y = pos.y;
+        empty_cell.data.x = pos.x;
+        empty_cell.data.y = pos.y;
         grid->cells[i] = empty_cell; // Value transfer, not identity
     }
     
@@ -92,7 +94,7 @@ static ioopm_list_t *create_cell_buffer(ca_lib_grid_t *grid)
     ioopm_list_t *buf = ioopm_linked_list_create(alloc_data_allocated, dont_free);
     for (size_t i = 0; i < grid->height * grid->width; i++)
     {
-        ioopm_linked_list_append(buf, &grid->cells[i].data, sizeof(data_t));
+        ioopm_linked_list_append(buf, (void *)(&grid->cells[i].data), sizeof(data_t));
     }
     return buf;
 }
@@ -248,6 +250,7 @@ void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func)
         ioopm_linked_list_remove(cell_buf, 0, (void **)(&current_data));
         sim_func(grid, current_data);
     }
+    ioopm_linked_list_destroy(&cell_buf);
 }
 
 // Applies the given simulation function to the grid without keeping track of movement
