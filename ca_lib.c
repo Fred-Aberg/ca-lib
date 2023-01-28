@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "ca_lib.h"
 #include "packages/hash_table/linked_list.h"
+#include "graphics/gfx/gfx.h"
 
 /*----USER NON-REACHAcarts.c ../database/db.c ../hash_and_list/hash_table.c ../hash_and_list/linked_list.cBLE DATATYPES----*/
 
@@ -18,10 +19,11 @@ typedef struct cell_struct cell_t;
 
 struct grid
 {
-    size_t width;
-    size_t height;
-    ca_lib_data_alloc_function_t alloc_func;
-    ca_lib_data_free_function_t free_func;
+    void *meta_data; // data pertaining to the whole grid, muste be alloc:ed/freed by the user
+    size_t width; // Width of the simulation
+    size_t height; // Height of the simulation
+    ca_lib_data_alloc_function_t alloc_func; // A 'ca_lib_data_alloc_function_t' that allocates the cells' data
+    ca_lib_data_free_function_t free_func; // A 'ca_lib_data_free_function_t' that frees the cells' data
     cell_t cells[]; // Allocate for 'witdh' * 'height' cells
 };
 
@@ -120,10 +122,12 @@ void *ca_lib_free_simple_ptr (void *data_ptr)
 }
 /*--------------------------*/
 
-ca_lib_grid_t *ca_lib_create_grid(size_t width, size_t height, ca_lib_data_alloc_function_t alloc_func, ca_lib_data_free_function_t free_func)
+ca_lib_grid_t *ca_lib_create_grid(void *meta_data, size_t width, size_t height, ca_lib_data_alloc_function_t alloc_func, ca_lib_data_free_function_t free_func)
 {
     size_t cells_mem_size = width * height * sizeof(cell_t); // memory required for the cells
     ca_lib_grid_t *grid = calloc(1, cells_mem_size + sizeof(ca_lib_grid_t));
+
+    grid->meta_data = meta_data;
 
     grid->height = height;
     grid->width = width;
@@ -133,6 +137,11 @@ ca_lib_grid_t *ca_lib_create_grid(size_t width, size_t height, ca_lib_data_alloc
     fill_grid_empty_cells(grid);
 
     return grid;
+}
+
+void *ca_lib_get_meta_data(ca_lib_grid_t *grid)
+{
+    return grid->meta_data;
 }
 
 size_t ca_lib_get_grid_width(ca_lib_grid_t *grid)
@@ -172,6 +181,11 @@ void ca_lib_clear_cell(ca_lib_grid_t *grid, size_t x, size_t y)
 // Inserts the given data_ptr into the cell at (x,y) in 'grid'
 void ca_lib_insert_cell(ca_lib_grid_t *grid, size_t x, size_t y, size_t data_size, void *data_ptr)
 {
+    if (!ca_lib_check_limits(grid, x, y))
+    {
+        return;
+    }
+
     cell_t *cell = &grid->cells[pos_to_i(grid->width, x, y)]; // Get pointer to cell at (x,y)
     cell->data.size = data_size; // Change cell's data_size
     cell->data.x = x;
@@ -187,6 +201,11 @@ void ca_lib_insert_cell(ca_lib_grid_t *grid, size_t x, size_t y, size_t data_siz
 // Moves the cell's data at (x1,y1) to (x2, y2) - overwriting and freeing any potential cell at (x2, y2)
 void ca_lib_move_cell(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size_t y2)
 {
+    if (!ca_lib_check_limits(grid, x1, y1) || !ca_lib_check_limits(grid, x2, y2))
+    {
+        return;
+    }
+
     // TODO: Optimise: don't need to clear and reinsert, just moooooove
 
     // Grab cell at (x1, y1)
@@ -201,6 +220,11 @@ void ca_lib_move_cell(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size
 // Switches the cells' data at (x1,y1) and (x2, y2)
 void ca_lib_switch_cells(ca_lib_grid_t *grid, size_t x1, size_t y1, size_t x2, size_t y2)
 {
+    if (!ca_lib_check_limits(grid, x1, y1) || !ca_lib_check_limits(grid, x2, y2))
+    {
+        return;
+    }
+    
     // No real memory management is needed, simply switch the 'data'
     cell_t *cell_1 = &grid->cells[pos_to_i(grid->width, x1, y1)];
     cell_t *cell_2 = &grid->cells[pos_to_i(grid->width, x2, y2)];
@@ -261,4 +285,87 @@ void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_
     {
         sim_func(grid, &grid->cells[i].data);
     }
+}
+
+/// GRAPHICS ///
+
+// draw an size x size cube
+static void draw_cell(int x, int y, int size)
+{
+	for (int _x = 0; _x < size; _x++)
+	{
+		for (int _y = 0; _y < size; _y++)
+		{
+			gfx_point(x + _x, y + _y);
+		}	
+	}
+}
+
+static void render_cell(ca_lib_grid_t *grid, data_t *data, ca_lib_cell_to_color_t color_convert_func, size_t scale)
+{
+    // Set Color
+    int color[3] = {0,0,0}; // Initialize three integers
+    color_convert_func(data, color); // Determine color from data
+    gfx_color(color[0], color[1], color[2]); // Set color
+
+    // Rotate coordinates
+    int x = (int)data->x; 
+    int y = (grid->height - 1) - (int)data->y;
+
+    draw_cell(x * scale, y * scale, scale); // Draw the cell to scale
+}
+
+static void render_grid(ca_lib_grid_t *grid, ca_lib_cell_to_color_t color_convert_func, size_t scale)
+{
+    for (size_t i = 0; i < grid->height * grid->width; i++)
+    {
+        render_cell(grid, &grid->cells[i].data, color_convert_func, scale);
+    }
+}
+
+void ca_lib_start_graphics_simulation(ca_lib_grid_t *grid, ca_lib_cell_to_color_t color_convert_func, ca_lib_simulate_grid_t sim_func, int iterations, size_t scale)
+{
+	gfx_open(grid->width * scale,grid->height * scale, "CA-Lib Simulation");
+    char c;
+    if (iterations == 0)
+    {
+        while (1)
+        {
+            // Simulate
+            render_grid(grid, color_convert_func, scale);
+            sim_func(grid);
+            c = gfx_wait();
+            if (c == 'c') continue;
+            if (c == 'q') break;
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < iterations; i++)
+        {
+            // Simulate
+            render_grid(grid, color_convert_func, scale);
+            sim_func(grid);
+        }
+        puts("\n      --SIMULATION DONE--\n     Press 'q' to quit");
+        while(1) 
+        {
+		// Wait for the user to press a character.
+		c = gfx_wait();
+
+		// Quit if it is the letter q.
+		if(c=='q') break;
+	    }
+    }
+
+
+
+
+    // while(1) {
+	// // Wait for the user to press a character.
+	// c = gfx_wait();
+
+	// // Quit if it is the letter q.
+	// if(c=='q') break;
+	// }
 }

@@ -26,6 +26,10 @@ typedef char(*ca_lib_data_to_char_t)(void *data_ptr);
 /// @brief Provided the data of a cell - implement desired simulation
 typedef void(*ca_lib_simulate_cell_t)(ca_lib_grid_t *grid, data_t *data);
 
+/// @brief Provided a grid - simulate it
+typedef void(*ca_lib_simulate_grid_t)(ca_lib_grid_t *grid);
+
+typedef void(*ca_lib_cell_to_color_t)(data_t *data, int *color);
 
 /*----FUNCTION HEADERS----*/
 
@@ -46,7 +50,9 @@ void *ca_lib_free_simple_ptr (void *data_ptr);
 /// @param alloc_func a function that allocates the cells' 'data_ptr' pointer
 /// @param free_func a function that frees the cells' 'data_ptr' pointer
 /// @return a pointer to the allocated grid
-ca_lib_grid_t *ca_lib_create_grid(size_t width, size_t heigth, ca_lib_data_alloc_function_t alloc_func, ca_lib_data_free_function_t free_func);
+ca_lib_grid_t *ca_lib_create_grid(void *meta_data, size_t width, size_t heigth, ca_lib_data_alloc_function_t alloc_func, ca_lib_data_free_function_t free_func);
+
+void *ca_lib_get_meta_data(ca_lib_grid_t *grid);
 
 size_t ca_lib_get_grid_width(ca_lib_grid_t *grid);
 
@@ -117,3 +123,10 @@ void ca_lib_simulate(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
 /// @param grid The given grid to be operated on
 /// @param sim_func The function which determines how the cells will behave
 void ca_lib_simulate_unabstract(ca_lib_grid_t *grid, ca_lib_simulate_cell_t sim_func);
+
+/// @brief Start a gfx graphics simulation - and simulate the grid for 'iteration' times
+/// @param grid the given grid to be simulated
+/// @param sim_func the function to be called each iteration
+/// @param iterations the number of times the grid will be simulated
+/// @param scale the pixel-scale of each cell
+void ca_lib_start_graphics_simulation(ca_lib_grid_t *grid, ca_lib_cell_to_color_t color_convert_func, ca_lib_simulate_grid_t sim_func, int iterations, size_t scale);

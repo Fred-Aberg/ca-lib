@@ -16,10 +16,8 @@ void draw_cube(int x, int y, int size)
 		for (int _y = 0; _y < size; _y++)
 		{
 			gfx_point(x + _x, y + _y);
-		}
-		
+		}	
 	}
-	
 }
 
 int main()
