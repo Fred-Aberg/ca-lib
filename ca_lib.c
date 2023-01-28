@@ -8,6 +8,7 @@
 
 /*----USER NON-REACHAcarts.c ../database/db.c ../hash_and_list/hash_table.c ../hash_and_list/linked_list.cBLE DATATYPES----*/
 
+
 struct cell_struct
 {
     size_t x;
